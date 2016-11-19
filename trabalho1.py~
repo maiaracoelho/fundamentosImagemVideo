@@ -84,7 +84,7 @@ def menu():
         aplicar_brilho(file_path)
         
     elif opcao == 2:
-        criar_negativo(file_path)
+        aplicarTonsCinza(file_path)
  
     elif opcao == 3:
         criarNegativo(file_path)
