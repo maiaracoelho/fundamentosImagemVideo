@@ -190,16 +190,29 @@ def extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura
 def detect_bic(video):
     
     count = 0
-    num_frames = int(video.get(7)) 
-    print num_frames
-    while (count < num_frames):
-        ret, frame = video.read()
-        cv2.imshow('video', frame)
+    frame_rate = int(video.get(cv2.cv.CV_CAP_PROP_FPS)) 
+    nFrames = int(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) 
+    contadorDeFrames = True
+    while (count < nFrames):
+        
+        video.set(1, count)
+        contadorDeFrames, frame = video.read()
+        cv2.imshow("Video", frame)
+        cv2.moveWindow('Video', 100, 178)
+        print"Frame: %d" %count
+        
+        k = cv2.waitKey(33)
+        if k==27:    # Esc key to stop
+            break
+        
         count += WINDOWS
-
+                
+    print ("Frames contador: %d" %nFrames)
     video.release()
+    cv2.destroyAllWindows()
     
-#-------Programa Principal------    
+    
+#-------Programa Principal------    1
 def menu():
     
   
@@ -223,8 +236,8 @@ def menu():
         menu()
  
     if opcao != 7:
-	file_path = str(raw_input("\nDigite o caminho do Video: "))
-        video = openVideo(file_path)
+	#file_path = str(raw_input("\nDigite o caminho do Video: "))
+        video = openVideo("videos/2.mp4")
 
     if opcao == 1:
         detect_bic(video)
