@@ -9,9 +9,13 @@ import MySQLdb
 import math
 from datetime import datetime, timedelta
 from operator import itemgetter
-import matplotlib.pyplot as plt
 import numpy as np
+import cv2
+ 
+WINDOWS = 15
 
+def openVideo(path):
+    return cv2.VideoCapture(path)
 
 def openImage(path):
     return Image.open(path)
@@ -39,45 +43,6 @@ def mostra_pixels(pixels, largura, altura):
             print pixels[j, i], "  ",
         print "\n"
 
-
-'''Funcao para aplicar brilho a uma imagem'''        
-def aplicar_brilho(originalImage, pixelsOriginalImage, altura, largura):  
-    
-    imgBrilho = Image.new('RGB', (255,255))
-    imgBrilho = originalImage
-    pixelsBrilho = pixelsOriginalImage
-    
-    valor = int(raw_input("Informe o valor pretendido de Brilho: "))
-    
-    for i in range(altura):
-        for j in range(largura):
-            r = pixelsOriginalImage[j,i][0] + valor
-            g = pixelsOriginalImage[j,i][1] + valor
-            b = pixelsOriginalImage[j,i][2] + valor
-
-            pixelsBrilho[j,i] = (r,g,b)
-    
-    saveImage(imgBrilho, 'images/imgBrilho.png')
-    imgBrilho.show()
-
-
-'''Funcao para criar negativo de uma imagem'''        
-def criar_negativo(originalImage, pixelsOriginalImage, altura, largura):  
-
-    imgNegative = Image.new('RGB', (255,255))
-    imgNegative = originalImage
-    pixelsNegative = pixelsOriginalImage
-
-    for i in range(altura):
-        for j in range(largura):
-            
-	    r = 255 - pixelsOriginalImage[j,i][0]
-            g = 255 - pixelsOriginalImage[j,i][1]
-            b = 255 - pixelsOriginalImage[j,i][2]
-            pixelsNegative[j,i] = (r,g,b)
-     
-    saveImage(imgNegative, 'images/imgNegativo.png')
-    imgNegative.show()
 
 
 '''Funcao para gerar histograma de uma imagem'''        
@@ -153,68 +118,6 @@ def gerar_histograma_local(originalImage, pixelsOriginalImage, altura, largura):
     print "Arquivo Gerado Com Sucesso..."
 
 
-'''Funcao para detectar bordas de uma imagem usando Operador de Roberts'''        
-def detectar_bordas_roberts(originalImage, pixelsOriginalImage, altura, largura):  
-
-    Limiar = 10
-    qtzeImg = originalImage.convert("P", palette=Image.ADAPTIVE, colors=128).convert("RGB")   
-    pixelsQtzImage = qtzeImg.load()
-    larguraQtz = qtzeImg.size[0]
-    alturaQtz =  qtzeImg.size[1] 
-    qtzeImg.show()
-    
-    imgFiltro = Image.new('RGB', (128,128))
-    imgFiltro = qtzeImg
-    pixelsFiltro = imgFiltro.load()
-
-    for i in range(1,alturaQtz-1):
-        for j in range(1,larguraQtz-1):
-           
-            r1=r2=0
-            r1 = pixelsQtzImage[j+1,i+1][0] - pixelsQtzImage[j,i][0]
-            r2 = pixelsQtzImage[j+1,i][0] - pixelsQtzImage[j,i+1][0]
-            r =(int)(math.sqrt((pow(r1,2) + pow(r2,2))))
-            
-            if r>Limiar:
-                 pixelsFiltro[j,i] = (255,255,255)
-	    else:
-		 pixelsFiltro[j,i] = (0,0,0) 
-  
-    saveImage(imgFiltro, 'images/imgRoberts.png')
-    imgFiltro.show()
-
-'''Funcao para detectar bordas de uma imagem usando Operador de Sobel'''        
-def detectar_bordas_sobel(originalImage, pixelsOriginalImage, altura, largura):  
-
-    Limiar = 64
-    qtzeImg = originalImage.convert("P", palette=Image.ADAPTIVE, colors=128).convert("RGB")   
-    pixelsQtzImage = qtzeImg.load()
-    larguraQtz = qtzeImg.size[0]
-    alturaQtz =  qtzeImg.size[1] 
-    qtzeImg.show()
-    
-    imgFiltro = Image.new('RGB', (128,128))
-    imgFiltro = qtzeImg
-    pixelsFiltro = imgFiltro.load()
-
-    for i in range(1,alturaQtz-1):
-        for j in range(1,larguraQtz-1):
-           
-          r1=r2=0
-
-          r1=-pixelsQtzImage[j-1,i-1][0]-2*pixelsQtzImage[j,i-1][0]-pixelsQtzImage[j+1,i-1][0]+pixelsQtzImage[j-1,i+1][0]+2*pixelsQtzImage[j,i+1][0]+pixelsQtzImage[j+1,i+1][0]
-
-          r2=-pixelsQtzImage[j-1,i-1][0]+pixelsQtzImage[j+1,i-1][0]-2*pixelsQtzImage[j-1,i][0]+2*pixelsQtzImage[j+1,i][0]-pixelsQtzImage[j-1,i+1][0]+pixelsQtzImage[j+1,i+1][0]
-
-          r =(int)(math.sqrt((pow(r1,2) + pow(r2,2))))
-          if r>Limiar:
-                 pixelsFiltro[j,i] = (255,255,255)
-	  else:
-		 pixelsFiltro[j,i] = (0,0,0) 
-    
-    saveImage(imgFiltro, 'images/imgSobel.png')
-    imgFiltro.show()
-
 '''Funcao que calcula a similaridade '''
 def calcular_dLog(histA, histB):
 
@@ -284,16 +187,27 @@ def extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura
     imprimir_arquivo(vetorCarac, arquivo)
     print "Arquivo Gerado Com Sucesso..."
               
+def detect_bic(video):
+    
+    count = 0
+    num_frames = int(video.get(7)) 
+    print num_frames
+    while (count < num_frames):
+        ret, frame = video.read()
+        cv2.imshow('video', frame)
+        count += WINDOWS
 
+    video.release()
+    
 #-------Programa Principal------    
 def menu():
     
   
     os.system("clear");
     print "==================================="
-    print "======= Image Editor ========"
+    print "======= Video Shot Detector ========"
     print "==================================="
-    opcao = raw_input("Escolha opcao desejada\n\n[1] - Aplicar Brilho\n[2] - Criar Negativo\n[3] - Gerar Histograma Global\n[4] - Gerar Histograma Local\n[5] - Detectar Bordas - Roberts \n[6]- Extrair propriedades de cor usando BIC\n[7] - Sair")
+    opcao = raw_input("Escolha opcao desejada\n\n[1] - BIC\n[2] - Criar Negativo\n[3] - Gerar Histograma Global\n[4] - Gerar Histograma Local\n[5] - Detectar Bordas - Roberts \n[6]- Extrair propriedades de cor usando BIC\n[7] - Sair")
  
     try:
         opcao = int(opcao)
@@ -309,39 +223,32 @@ def menu():
         menu()
  
     if opcao != 7:
-	file_path = str(raw_input("\nDigite o caminho da Imagem: "))
-        originalImage = openImage(file_path)
-        pixelsOriginalImage = originalImage.load()
-        largura = originalImage.size[0]
-        altura =  originalImage.size[1]
-        originalImage.show()
+	file_path = str(raw_input("\nDigite o caminho do Video: "))
+        video = openVideo(file_path)
 
     if opcao == 1:
-        aplicar_brilho(originalImage, pixelsOriginalImage, altura, largura)
+        detect_bic(video)
        
     elif opcao == 2:
-        criar_negativo(originalImage, pixelsOriginalImage, altura, largura)
+        pass
        
     elif opcao == 3:
-        gerar_histograma_global(originalImage, pixelsOriginalImage, altura, largura)
+        pass
        
     elif opcao == 4:
-        gerar_histograma_local(originalImage, pixelsOriginalImage, altura, largura)
+        pass
        
     elif opcao == 5:
-        detectar_bordas_roberts(originalImage, pixelsOriginalImage, altura, largura)
+        pass
        
     #elif opcao == 6:
     #    detectar_bordas_sobel(originalImage, pixelsOriginalImage, altura, largura)
        
     elif opcao == 6:
-        extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura)
+        pass
        
     elif opcao == 7:
         sys.exit()
-
-    #time.sleep(2)
-    #menu()
 
 
 if __name__=='__main__':
