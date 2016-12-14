@@ -12,7 +12,7 @@ from operator import itemgetter
 import numpy as np
 import cv2
  
-WINDOWS = 15
+WINDOWS = 10
 
 def openVideo(path):
     return cv2.VideoCapture(path)
@@ -144,7 +144,7 @@ def calcular_dLog(histA, histB):
 
 
 '''Funcao para extrair propriedades de cor de uma imagem'''        
-def extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura):  
+def extrair_propriedades_bic(frameAnterior, frameAtual):  
 
     qtzeImg = originalImage.convert("P", palette=Image.ADAPTIVE, colors=64).convert("RGB")   
     pixelsQtzImage = qtzeImg.load()
@@ -174,9 +174,6 @@ def extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura
     dictBorda_sorted = sorted(dictBorda.items(), key=itemgetter(0))
     dictInterior_sorted = sorted(dictInterior.items(), key=itemgetter(0))
     
-    #dLog = calcular_dLog(dictBorda, dictInterior)    
-    #print dLog
-
     vetorCarac=[]
     vetorCarac.append(dictBorda_sorted)
     vetorCarac.append(dictInterior_sorted)
@@ -190,9 +187,20 @@ def extrair_propriedades_bic(originalImage, pixelsOriginalImage, altura, largura
 def detect_bic(video):
     
     count = 0
+    framesCount = 0
     frame_rate = int(video.get(cv2.cv.CV_CAP_PROP_FPS)) 
     nFrames = int(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)) 
     contadorDeFrames = True
+    
+    video.set(1, count)
+    contadorDeFrames, frame = video.read()
+    cv2.imshow("Video", frame)
+    cv2.moveWindow('Video', 100, 178)
+    print"Frame: %d" %count
+    count += WINDOWS 
+    framesCount += 1 
+    frameAnterior = frame
+        
     while (count < nFrames):
         
         video.set(1, count)
@@ -201,13 +209,21 @@ def detect_bic(video):
         cv2.moveWindow('Video', 100, 178)
         print"Frame: %d" %count
         
+        #frameAnterior = quantize_image()
+        #frame = quantize_image()
+        #vetorFrameAnterior = extrair_propriedades_bic(frameAnterior)
+        #vetorFrameAtual = extrair_propriedades_bic(frameframe)
+        #dLog(vetorFrameAnterior, vetorFrameAtual)
+                
         k = cv2.waitKey(33)
         if k==27:    # Esc key to stop
             break
         
-        count += WINDOWS
+        count += WINDOWS 
+        framesCount += 1 
                 
-    print ("Frames contador: %d" %nFrames)
+    print ("Numero de Frames Avaliados: %d" %framesCount)
+    print ("Numero de frames: %d" %nFrames)
     video.release()
     cv2.destroyAllWindows()
     
