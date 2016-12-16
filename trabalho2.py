@@ -11,38 +11,28 @@ from datetime import datetime, timedelta
 from operator import itemgetter
 import numpy as np
 import cv2
+from math import floor
+
  
 WINDOWS = 10
 
 def openVideo(path):
     return cv2.VideoCapture(path)
 
-def openImage(path):
-    return Image.open(path)
-
-
-def saveImage(img, path):
-    return img.save(path)
-
-
-'''Funcao para gerar histograma de uma imagem'''        
-def imprimir_arquivo(vetor, arquivo): 
+def quantize_image(frame, n):
     
-    arqCount = open(arquivo, 'w')
-    for i in range(len(vetor)):
-        print vetor[i]
-	arqCount.write(str(vetor[i])+"\n")   
-       
-    arqCount.close()
+    qtze_image = frame
+    height = qtze_image.shape[0]
+    width = qtze_image.shape[1]
     
-
-def mostra_pixels(pixels, largura, altura):
-
-    for i in range(altura):
-        for j in range(largura):
-            print pixels[j, i], "  ",
-        print "\n"
-
+    for i in range(width):
+        for j in range(height):
+            r = (qtze_image[j, i][0]/n) * n
+            g = (qtze_image[j, i][1]/n) * n
+            b = (qtze_image[j, i][2]/n) * n
+    
+            qtze_image[j,i] = (r,g,b)
+    return qtze_image
 
 
 '''Funcao para gerar histograma de uma imagem'''        
@@ -144,32 +134,29 @@ def calcular_dLog(histA, histB):
 
 
 '''Funcao para extrair propriedades de cor de uma imagem'''        
-def extrair_propriedades_bic(frameAnterior, frameAtual):  
+def extrair_propriedades_bic(frameQtze):  
 
-    qtzeImg = originalImage.convert("P", palette=Image.ADAPTIVE, colors=64).convert("RGB")   
-    pixelsQtzImage = qtzeImg.load()
-    larguraQtz = qtzeImg.size[0]
-    alturaQtz =  qtzeImg.size[1] 
-    qtzeImg.show()
+    height = qtze_image.shape[0]
+    width = qtze_image.shape[1]
 
     dictBorda={}
     dictInterior={}
-    for i in range(1,alturaQtz-1):
-        for j in range(1,larguraQtz-1):
+    for i in range(1,height-1):
+        for j in range(1,width-1):
            
-            if ((pixelsQtzImage[j,i-1][0] != pixelsQtzImage[j,i][0]) or (pixelsQtzImage[j-1,i][0] != pixelsQtzImage[j,i][0]) or (pixelsQtzImage[j+1,i][0] != pixelsQtzImage[j,i][0]) or (pixelsQtzImage[j,i+1][0] != pixelsQtzImage[j,i][0])):  
+            if ((frameQtze[j,i-1][0] != frameQtze[j,i][0]) or (frameQtze[j-1,i][0] != frameQtze[j,i][0]) or (frameQtze[j+1,i][0] != frameQtze[j,i][0]) or (frameQtze[j,i+1][0] != frameQtze[j,i][0])):  
                
-	       if (dictBorda.has_key(pixelsQtzImage[j,i][0])): 
-		  dictBorda[pixelsQtzImage[j,i][0]] = dictBorda[pixelsQtzImage[j,i][0]] + 1
+	       if (dictBorda.has_key(frameQtze[j,i][0])): 
+		  dictBorda[frameQtze[j,i][0]] = dictBorda[frameQtze[j,i][0]] + 1
 	       else:
-		  dictBorda[pixelsQtzImage[j,i][0]] = 1
+		  dictBorda[frameQtze[j,i][0]] = 1
 
 	    else:
                
-	       if (dictInterior.has_key(pixelsQtzImage[j,i][0])): 
-		  dictInterior[pixelsQtzImage[j,i][0]] = dictInterior[pixelsQtzImage[j,i][0]] + 1
+	       if (dictInterior.has_key(frameQtze[j,i][0])): 
+		  dictInterior[frameQtze[j,i][0]] = dictInterior[frameQtze[j,i][0]] + 1
 	       else:
-		  dictInterior[pixelsQtzImage[j,i][0]] = 1
+		  dictInterior[frameQtze[j,i][0]] = 1
              
     dictBorda_sorted = sorted(dictBorda.items(), key=itemgetter(0))
     dictInterior_sorted = sorted(dictInterior.items(), key=itemgetter(0))
@@ -178,11 +165,7 @@ def extrair_propriedades_bic(frameAnterior, frameAtual):
     vetorCarac.append(dictBorda_sorted)
     vetorCarac.append(dictInterior_sorted)
     
-    print "Escrevendo no Arquivo BICHistrogram.txt..."
-
-    arquivo = "BICHistogram.txt"
-    imprimir_arquivo(vetorCarac, arquivo)
-    print "Arquivo Gerado Com Sucesso..."
+    return vetorCarac
               
 def detect_bic(video):
     
@@ -193,26 +176,32 @@ def detect_bic(video):
     contadorDeFrames = True
     
     video.set(1, count)
-    contadorDeFrames, frame = video.read()
-    cv2.imshow("Video", frame)
-    cv2.moveWindow('Video', 100, 178)
+    contadorDeFrames, frameAtual = video.read()
+    #cv2.imshow("Video", frameAtual)
+    #cv2.moveWindow('Video', 100, 178)
     print"Frame: %d" %count
     count += WINDOWS 
     framesCount += 1 
-    frameAnterior = frame
+    frameAnterior = frameAtual
         
     while (count < nFrames):
         
         video.set(1, count)
-        contadorDeFrames, frame = video.read()
-        cv2.imshow("Video", frame)
-        cv2.moveWindow('Video', 100, 178)
+        contadorDeFrames, frameAtual = video.read()
+        #cv2.imshow("Video", frame)
+        #cv2.moveWindow('Video', 100, 178)
         print"Frame: %d" %count
         
-        #frameAnterior = quantize_image()
-        #frame = quantize_image()
-        #vetorFrameAnterior = extrair_propriedades_bic(frameAnterior)
-        #vetorFrameAtual = extrair_propriedades_bic(frameframe)
+        frameAtual_qtze = quantize_image(frameAtual, 64)
+        frameAnterior_qtze = quantize_image(frameAnterior, 64)
+        vetorFrameAtual = extrair_propriedades_bic(frameAtual_qtze)
+        vetorFrameAnterior = extrair_propriedades_bic(frameAnterior_qtze)
+
+        
+        cv2.imshow("Video2", frameAtual_qtze)
+        cv2.moveWindow('Video', 100, 178)
+        
+       
         #dLog(vetorFrameAnterior, vetorFrameAtual)
                 
         k = cv2.waitKey(33)
